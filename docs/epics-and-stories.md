@@ -1,0 +1,128 @@
+MVP
+
+- Epic: Due Date Support
+  - Story: Add optional due date field to task
+    - Acceptance Criteria:
+      - User can optionally set a due date using a date input.
+      - Saved due date is stored in ISO YYYY-MM-DD format.
+      - Leaving the field blank saves the task without a due date.
+      - Editing a task shows the current due date or empty if absent.
+      - Due date value persists locally and survives page reload.
+    - Technical Requirements:
+      - Use the existing date input in [packages/frontend/src/TaskForm.js](packages/frontend/src/TaskForm.js) with `type="date"` and value format `YYYY-MM-DD`.
+      - Reuse `normalizeDateString()` in [packages/frontend/src/TaskForm.js](packages/frontend/src/TaskForm.js) to ensure ISO formatting on load/edit.
+      - Introduce a storage adapter (`storage/local`) to persist `due_date` along with `title`, `description`, `completed`.
+      - Refactor `App` `handleSave()` in [packages/frontend/src/App.js](packages/frontend/src/App.js) to call the storage adapter instead of `fetch('/api/tasks')` for MVP.
+  - Story: Ignore invalid due date inputs
+    - Acceptance Criteria:
+      - Non-ISO or impossible dates (e.g., 2025-13-40) are not saved.
+      - Invalid due dates are treated as absent (task remains undated).
+      - App does not crash or block saving other valid fields.
+      - Tasks with invalid/absent due dates are excluded from date-based filters.
+    - Technical Requirements:
+      - Validate on submit in [packages/frontend/src/TaskForm.js](packages/frontend/src/TaskForm.js): accept empty or `^\d{4}-\d{2}-\d{2}$` matching values, else set `due_date = null`.
+      - When loading tasks, drop/overwrite invalid `due_date` values to `null` before rendering in [packages/frontend/src/TaskList.js](packages/frontend/src/TaskList.js).
+      - Do not add backend validation; MVP must not require changes to [packages/backend/src/app.js](packages/backend/src/app.js).
+- Epic: Priority Support
+  - Story: Add priority field with P1, P2, P3 options
+    - Acceptance Criteria:
+      - UI offers exactly three options: P1, P2, P3.
+      - Selected priority is stored with the task and persists locally.
+      - Only enum values (P1, P2, P3) can be saved.
+    - Technical Requirements:
+      - Add a priority selector (e.g., MUI `Select`) in [packages/frontend/src/TaskForm.js](packages/frontend/src/TaskForm.js) storing `priority` as one of `"P1"|"P2"|"P3"`.
+      - Extend the storage adapter schema to include `priority`.
+      - For MVP, do not modify backend DB schema in [packages/backend/src/app.js](packages/backend/src/app.js); priority remains client/local only.
+  - Story: Default new tasks to priority P3
+    - Acceptance Criteria:
+      - When no priority is explicitly chosen, new tasks save as P3.
+      - Default selection is visible to the user on create.
+    - Technical Requirements:
+      - Initialize priority state to `"P3"` in [packages/frontend/src/TaskForm.js](packages/frontend/src/TaskForm.js) and reflect as default in the selector.
+- Epic: Filtering Views
+  - Story: Implement All filter view
+    - Acceptance Criteria:
+      - Displays all tasks regardless of completion status.
+      - Tasks without a due date are included.
+    - Technical Requirements:
+      - Add a filter control (tabs or buttons) in [packages/frontend/src/TaskList.js](packages/frontend/src/TaskList.js) with options: All, Today, Overdue.
+      - Fetch tasks from storage adapter and apply client-side filtering.
+  - Story: Implement Today filter view
+    - Acceptance Criteria:
+      - Shows only incomplete tasks with due date equal to today (local date).
+      - Excludes completed tasks and tasks without/invalid due dates.
+    - Technical Requirements:
+      - Compute “today” using local date (no timezone offset) similar to `formatDueDate()` logic in [packages/frontend/src/TaskList.js](packages/frontend/src/TaskList.js).
+      - Filter array in-memory; do not add backend query params.
+  - Story: Implement Overdue filter view
+    - Acceptance Criteria:
+      - Shows only incomplete tasks with due date before today (local date).
+      - Excludes completed tasks and tasks without/invalid due dates.
+    - Technical Requirements:
+      - Compare parsed local dates; include only `completed === false` and `due_date < today`.
+      - Ensure consistent parsing when `due_date` is a `YYYY-MM-DD` string.
+- Epic: Local Storage Persistence
+  - Story: Persist tasks locally without backend integration
+    - Acceptance Criteria:
+      - All task fields (title, description if present, priority, due date, completed) persist across reloads.
+      - No network requests are made to save or load tasks.
+      - Functionality works offline.
+    - Technical Requirements:
+      - Create `packages/frontend/src/storage/local.js` exporting `list()`, `create(task)`, `update(id, task)`, `patch(id, partial)`, `remove(id)` using `localStorage` (namespaced key, e.g., `todo.tasks`).
+      - Replace `fetch('/api/tasks')` calls in [packages/frontend/src/App.js](packages/frontend/src/App.js) and [packages/frontend/src/TaskList.js](packages/frontend/src/TaskList.js) with the local storage adapter for MVP.
+      - Keep backend endpoints in [packages/backend/src/app.js](packages/backend/src/app.js) untouched for future use.
+- Epic: Validation Rules
+  - Story: Require title when creating a task
+    - Acceptance Criteria:
+      - Attempting to save a task with an empty title is prevented.
+      - A clear validation message is shown and the task is not created/updated.
+    - Technical Requirements:
+      - Keep existing required validation in [packages/frontend/src/TaskForm.js](packages/frontend/src/TaskForm.js) and error UI; enforce `title.trim().length > 0` before storage.
+  - Story: Enforce priority to allowed values
+    - Acceptance Criteria:
+      - Only P1, P2, or P3 can be selected in the UI.
+      - If an invalid value is encountered (e.g., corrupted data), it is treated as P3.
+    - Technical Requirements:
+      - Constrain selector options in [packages/frontend/src/TaskForm.js](packages/frontend/src/TaskForm.js) to `P1|P2|P3`.
+      - On load from storage, coerce unknown values to `"P3"` before render in [packages/frontend/src/TaskList.js](packages/frontend/src/TaskList.js).
+
+Post‑MVP
+
+- Epic: Overdue Visual Highlighting
+  - Story: Highlight overdue tasks in red styling
+    - Acceptance Criteria:
+      - Incomplete tasks with due date before today render with red highlight styling.
+      - Completed tasks are not highlighted as overdue.
+      - Styling meets accessible contrast guidelines.
+    - Technical Requirements:
+      - In [packages/frontend/src/TaskList.js](packages/frontend/src/TaskList.js), add conditional styles (e.g., red border/background) when `!completed && due_date < today`.
+      - Use MUI theme colors ensuring contrast against background per WCAG AA.
+- Epic: Sorting Enhancements
+  - Story: Sort overdue tasks before others
+    - Acceptance Criteria:
+      - In list views, overdue tasks appear before non-overdue tasks.
+    - Technical Requirements:
+      - Implement a comparator in [packages/frontend/src/TaskList.js](packages/frontend/src/TaskList.js) that buckets overdue first.
+  - Story: Sort by priority P1 to P3 within groups
+    - Acceptance Criteria:
+      - Within each overdue/non-overdue group, tasks order by priority: P1, then P2, then P3.
+    - Technical Requirements:
+      - Extend comparator to map `P1=1, P2=2, P3=3` and sort ascending.
+  - Story: Sort by due date ascending for dated tasks
+    - Acceptance Criteria:
+      - Within the same priority, earlier due dates appear before later due dates.
+    - Technical Requirements:
+      - Parse `YYYY-MM-DD` to local `Date` and sort ascending when both tasks have dates.
+  - Story: Place undated tasks after dated tasks
+    - Acceptance Criteria:
+      - Tasks without a due date appear after tasks with due dates within the same priority.
+    - Technical Requirements:
+      - In comparator, treat `due_date === null` as greater than any real date.
+- Epic: Priority Badges
+  - Story: Display color-coded badges for priority levels
+    - Acceptance Criteria:
+      - P1 shows a red badge, P2 shows orange, P3 shows gray.
+      - Badge is visible wherever a task is listed.
+    - Technical Requirements:
+      - Render an MUI `Chip` adjacent to title in [packages/frontend/src/TaskList.js](packages/frontend/src/TaskList.js) with colors: red (P1), orange (P2), gray (P3).
+      - Ensure badges do not appear for tasks missing `priority` in legacy data; default to `P3`.
