@@ -12,12 +12,8 @@ function TaskList({ onEdit }) {
   const [error, setError] = useState(null);
 
   const getPriorityColor = (priority) => {
-    const colors = {
-      'P1': '#d32f2f',  // Red
-      'P2': '#ff9800',  // Orange
-      'P3': '#1976d2'   // Blue
-    };
-    return colors[priority] || colors['P3'];
+    // Selected priority color (assigned to task)
+    return '#07F2E6';  // Cyan/Blue for selected/assigned priority
   };
 
   useEffect(() => {
@@ -70,6 +66,24 @@ function TaskList({ onEdit }) {
       fetchTasks();
     } catch (err) {
       setError('Failed to delete task');
+    }
+  };
+
+  const handlePriorityChange = async (taskId, newPriority) => {
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          title: tasks.find(t => t.id === taskId).title,
+          description: tasks.find(t => t.id === taskId).description,
+          due_date: tasks.find(t => t.id === taskId).due_date,
+          priority: newPriority
+        })
+      });
+      fetchTasks();
+    } catch (err) {
+      setError('Failed to update priority');
     }
   };
 
@@ -212,17 +226,28 @@ function TaskList({ onEdit }) {
                 gap: 1
               }}
             >
-              <Chip
-                label={task.priority || 'P3'}
-                size="small"
-                sx={{
-                  height: 20,
-                  fontSize: '0.7rem',
-                  fontWeight: 600,
-                  backgroundColor: getPriorityColor(task.priority || 'P3'),
-                  color: 'white'
-                }}
-              />
+              {/* Priority radio buttons */}
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                {['P1', 'P2', 'P3'].map((priority) => (
+                  <Chip
+                    key={priority}
+                    label={priority}
+                    size="small"
+                    onClick={() => handlePriorityChange(task.id, priority)}
+                    sx={{
+                      height: 20,
+                      fontSize: '0.7rem',
+                      fontWeight: 600,
+                      backgroundColor: task.priority === priority ? '#07F2E6' : '#7A7A7A',
+                      color: 'white',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        opacity: 0.8
+                      }
+                    }}
+                  />
+                ))}
+              </Box>
               {task.due_date && (
                 <Chip
                   icon={<EventIcon sx={{ fontSize: 14 }} />}

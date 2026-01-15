@@ -172,9 +172,9 @@ function TaskForm({ onSave, initialTask }) {
             }
           }}
         >
-          <option value="P1" style={{ color: '#d32f2f' }}>P1 - High</option>
-          <option value="P2" style={{ color: '#ff9800' }}>P2 - Medium</option>
-          <option value="P3" style={{ color: '#1976d2' }}>P3 - Low</option>
+          <option value="P1">P1 - High</option>
+          <option value="P2">P2 - Medium</option>
+          <option value="P3">P3 - Low</option>
         </TextField>
         {error && <Typography color="error" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>{error}</Typography>}
         <Box display="flex" gap={2}>
