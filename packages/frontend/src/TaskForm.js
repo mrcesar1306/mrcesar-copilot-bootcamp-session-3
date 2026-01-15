@@ -7,6 +7,7 @@ function TaskForm({ onSave, initialTask }) {
   const [title, setTitle] = useState(initialTask?.title || '');
   const [description, setDescription] = useState(initialTask?.description || '');
   const [dueDate, setDueDate] = useState(initialTask?.due_date || '');
+  const [priority, setPriority] = useState(initialTask?.priority || 'P3');
   const [error, setError] = useState(null);
 
   // Helper to normalize date string to YYYY-MM-DD format
@@ -30,10 +31,12 @@ function TaskForm({ onSave, initialTask }) {
       setTitle(initialTask.title || '');
       setDescription(initialTask.description || '');
       setDueDate(normalizeDateString(initialTask.due_date));
+      setPriority(initialTask.priority || 'P3');
     } else {
       setTitle('');
       setDescription('');
       setDueDate('');
+      setPriority('P3');
     }
   }, [initialTask]);
 
@@ -44,10 +47,11 @@ function TaskForm({ onSave, initialTask }) {
       return;
     }
     setError(null);
-    await onSave({ title, description, due_date: dueDate });
+    await onSave({ title, description, due_date: dueDate, priority });
     setTitle('');
     setDescription('');
     setDueDate('');
+    setPriority('P3');
   };
 
   return (
@@ -143,6 +147,35 @@ function TaskForm({ onSave, initialTask }) {
             }
           }}
         />
+        <TextField
+          id="task-priority"
+          select
+          label="Priority"
+          value={priority}
+          onChange={e => setPriority(e.target.value)}
+          variant="outlined"
+          fullWidth
+          size="small"
+          SelectProps={{
+            native: true,
+            'data-testid': 'priority-select'
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+              '&:hover fieldset': {
+                borderColor: '#1976d2',
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: '#1976d2',
+              }
+            }
+          }}
+        >
+          <option value="P1" style={{ color: '#d32f2f' }}>P1 - High</option>
+          <option value="P2" style={{ color: '#ff9800' }}>P2 - Medium</option>
+          <option value="P3" style={{ color: '#1976d2' }}>P3 - Low</option>
+        </TextField>
         {error && <Typography color="error" sx={{ fontWeight: 500, fontSize: '0.875rem' }}>{error}</Typography>}
         <Box display="flex" gap={2}>
           <Button 
