@@ -234,11 +234,11 @@ function TaskList({ onEdit }) {
                     label={priority}
                     size="small"
                     onClick={() => handlePriorityChange(task.id, priority)}
+                    className={task.priority === priority ? 'priority-selected' : 'priority-unselected'}
                     sx={{
                       height: 20,
                       fontSize: '0.7rem',
                       fontWeight: 600,
-                      backgroundColor: task.priority === priority ? '#07F2E6' : '#7A7A7A',
                       color: 'white',
                       cursor: 'pointer',
                       '&:hover': {
